@@ -1,11 +1,13 @@
 package dev.vbonnet.flutterwebbrowser;
 
 import android.app.Activity;
+import android.content.ComponentName;
 import android.graphics.Color;
 import android.net.Uri;
 import androidx.browser.customtabs.CustomTabColorSchemeParams;
 import androidx.browser.customtabs.CustomTabsClient;
 import androidx.browser.customtabs.CustomTabsIntent;
+import androidx.browser.customtabs.CustomTabsServiceConnection;
 import java.util.Arrays;
 import java.util.HashMap;
 import io.flutter.plugin.common.MethodCall;
@@ -35,50 +37,62 @@ public class MethodCallHandlerImpl implements MethodCallHandler {
     }
   }
 
-  private void openUrl(MethodCall call, Result result) {
+  private void openUrl(final MethodCall call, final Result result) {
     if (activity == null) {
       result.error("no_activity", "Plugin is only available within a activity context", null);
       return;
     }
-    String url = call.argument("url");
-    HashMap<String, Object> options = call.<HashMap<String, Object>>argument("android_options");
 
-    CustomTabsIntent.Builder builder = new CustomTabsIntent.Builder();
+		final CustomTabsServiceConnection connection = new CustomTabsServiceConnection() {
+			@Override
+			public void onCustomTabsServiceConnected(ComponentName componentName, CustomTabsClient client) {
+				final CustomTabsIntent.Builder builder = new CustomTabsIntent.Builder();
+				final CustomTabsIntent intent = builder.build();
+				client.warmup(0L); // This prevents backgrounding after redirection
 
-    builder.setColorScheme((Integer) options.get("colorScheme"));
+				String url = call.argument("url");
+				HashMap<String, Object> options = call.<HashMap<String, Object>>argument("android_options");
 
-    String navigationBarColor = (String)options.get("navigationBarColor");
-    if (navigationBarColor != null) {
-      builder.setNavigationBarColor(Color.parseColor(navigationBarColor));
-    }
+				builder.setColorScheme((Integer) options.get("colorScheme"));
 
-    String toolbarColor = (String)options.get("toolbarColor");
-    if (toolbarColor != null) {
-      builder.setToolbarColor(Color.parseColor(toolbarColor));
-    }
+				String navigationBarColor = (String)options.get("navigationBarColor");
+				if (navigationBarColor != null) {
+					builder.setNavigationBarColor(Color.parseColor(navigationBarColor));
+				}
 
-    String secondaryToolbarColor = (String)options.get("secondaryToolbarColor");
-    if (secondaryToolbarColor != null) {
-      builder.setSecondaryToolbarColor(Color.parseColor(secondaryToolbarColor));
-    }
+				String toolbarColor = (String)options.get("toolbarColor");
+				if (toolbarColor != null) {
+					builder.setToolbarColor(Color.parseColor(toolbarColor));
+				}
 
-    builder.setInstantAppsEnabled((Boolean) options.get("instantAppsEnabled"));
+				String secondaryToolbarColor = (String)options.get("secondaryToolbarColor");
+				if (secondaryToolbarColor != null) {
+					builder.setSecondaryToolbarColor(Color.parseColor(secondaryToolbarColor));
+				}
 
-    if ((Boolean) options.get("addDefaultShareMenuItem")) {
-      builder.addDefaultShareMenuItem();
-    }
+				builder.setInstantAppsEnabled((Boolean) options.get("instantAppsEnabled"));
 
-    builder.setShowTitle((Boolean) options.get("showTitle"));
+				if ((Boolean) options.get("addDefaultShareMenuItem")) {
+					builder.addDefaultShareMenuItem();
+				}
 
-    if ((Boolean) options.get("urlBarHidingEnabled")) {
-      builder.enableUrlBarHiding();
-    }
+				builder.setShowTitle((Boolean) options.get("showTitle"));
 
-    CustomTabsIntent customTabsIntent = builder.build();
-    customTabsIntent.intent.setPackage(getPackageName());
-    customTabsIntent.launchUrl(activity, Uri.parse(url));
+				if ((Boolean) options.get("urlBarHidingEnabled")) {
+					builder.enableUrlBarHiding();
+				}
 
-    result.success(null);
+				CustomTabsIntent customTabsIntent = builder.build();
+				customTabsIntent.intent.setPackage(getPackageName());
+				customTabsIntent.launchUrl(activity, Uri.parse(url));
+
+				result.success(null);
+			}
+			@Override
+			public void onServiceDisconnected(ComponentName name) {}
+		};
+
+		CustomTabsClient.bindCustomTabsService(activity, "com.android.chrome", connection);
   }
 
   private void warmup(Result result) {
