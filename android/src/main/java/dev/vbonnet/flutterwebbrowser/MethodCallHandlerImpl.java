@@ -86,7 +86,7 @@ public class MethodCallHandlerImpl implements MethodCallHandler {
 
 				CustomTabsIntent customTabsIntent = builder.build();
 				customTabsIntent.intent.setPackage(getPackageName());
-				customTabsIntent.intent.setFlags(FLAG_ACTIVITY_NEW_TASK);
+//				customTabsIntent.intent.setFlags(FLAG_ACTIVITY_NEW_TASK);
 
 				customTabsIntent.launchUrl(activity, Uri.parse(url));
 
