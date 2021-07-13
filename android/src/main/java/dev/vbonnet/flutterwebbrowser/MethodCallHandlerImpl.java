@@ -1,5 +1,7 @@
 package dev.vbonnet.flutterwebbrowser;
 
+import static android.content.Intent.FLAG_ACTIVITY_NEW_TASK;
+
 import android.app.Activity;
 import android.content.ComponentName;
 import android.graphics.Color;
@@ -84,6 +86,8 @@ public class MethodCallHandlerImpl implements MethodCallHandler {
 
 				CustomTabsIntent customTabsIntent = builder.build();
 				customTabsIntent.intent.setPackage(getPackageName());
+				customTabsIntent.intent.setFlags(FLAG_ACTIVITY_NEW_TASK);
+
 				customTabsIntent.launchUrl(activity, Uri.parse(url));
 
 				result.success(null);
