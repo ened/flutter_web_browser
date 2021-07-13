@@ -1,20 +1,18 @@
 package dev.vbonnet.flutterwebbrowser;
 
-import static android.content.Intent.FLAG_ACTIVITY_NEW_TASK;
-
 import android.app.Activity;
 import android.content.ComponentName;
 import android.graphics.Color;
 import android.net.Uri;
-import androidx.browser.customtabs.CustomTabColorSchemeParams;
+import androidx.annotation.NonNull;
 import androidx.browser.customtabs.CustomTabsClient;
 import androidx.browser.customtabs.CustomTabsIntent;
 import androidx.browser.customtabs.CustomTabsServiceConnection;
-import java.util.Arrays;
-import java.util.HashMap;
 import io.flutter.plugin.common.MethodCall;
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler;
 import io.flutter.plugin.common.MethodChannel.Result;
+import java.util.Collections;
+import java.util.HashMap;
 
 public class MethodCallHandlerImpl implements MethodCallHandler {
 
@@ -25,7 +23,7 @@ public class MethodCallHandlerImpl implements MethodCallHandler {
   }
 
   @Override
-  public void onMethodCall(MethodCall call, Result result) {
+  public void onMethodCall(MethodCall call, @NonNull Result result) {
     switch (call.method) {
       case "openWebPage":
         openUrl(call, result);
@@ -47,15 +45,16 @@ public class MethodCallHandlerImpl implements MethodCallHandler {
 
 		final CustomTabsServiceConnection connection = new CustomTabsServiceConnection() {
 			@Override
-			public void onCustomTabsServiceConnected(ComponentName componentName, CustomTabsClient client) {
+			public void onCustomTabsServiceConnected(@NonNull ComponentName componentName, CustomTabsClient client) {
 				final CustomTabsIntent.Builder builder = new CustomTabsIntent.Builder();
-				final CustomTabsIntent intent = builder.build();
 				client.warmup(0L); // This prevents backgrounding after redirection
 
 				String url = call.argument("url");
-				HashMap<String, Object> options = call.<HashMap<String, Object>>argument("android_options");
+				HashMap<String, Object> options = call.argument("android_options");
 
 				builder.setColorScheme((Integer) options.get("colorScheme"));
+
+				builder.setInstantAppsEnabled(false);
 
 				String navigationBarColor = (String)options.get("navigationBarColor");
 				if (navigationBarColor != null) {
@@ -86,7 +85,6 @@ public class MethodCallHandlerImpl implements MethodCallHandler {
 
 				CustomTabsIntent customTabsIntent = builder.build();
 				customTabsIntent.intent.setPackage(getPackageName());
-//				customTabsIntent.intent.setFlags(FLAG_ACTIVITY_NEW_TASK);
 
 				customTabsIntent.launchUrl(activity, Uri.parse(url));
 
@@ -105,6 +103,7 @@ public class MethodCallHandlerImpl implements MethodCallHandler {
   }
 
   private String getPackageName() {
-    return CustomTabsClient.getPackageName(activity, Arrays.asList("com.android.chrome"));
+    return CustomTabsClient.getPackageName(activity,
+				Collections.singletonList("com.android.chrome"));
   }
 }
